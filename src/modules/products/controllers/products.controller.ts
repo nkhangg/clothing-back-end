@@ -39,7 +39,7 @@ export class ProductsController {
     async getProducts(
         @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
         @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
-        @Query() queries: Omit<QueriesProduct, 'options'>,
+        @Query() queries: Omit<QueriesProduct<number>, 'options'>,
         @Req() request: any,
     ) {
         return await this.productsService.getProducts({ options: { page, limit }, ...queries }, request);
@@ -53,28 +53,6 @@ export class ProductsController {
     @Post('categories')
     async createCategories() {
         return await this.productsService.createCategiries();
-    }
-
-    @Post('create-images')
-    @Roles([ERoles.CREATE])
-    @UseGuards(RolesGuard)
-    @UseInterceptors(
-        FilesInterceptor('images', 6, {
-            storage: process.env.CLOUND_MODE === 'clound' ? undefined : storegeConfig('products'),
-            fileFilter: filterStorage,
-        }),
-    )
-    async createImages(@UploadedFiles() images: Array<Express.Multer.File>, @Req() request: any) {
-        if (request.fileValidationError) {
-            throw new BadRequestException(request.fileValidationError);
-        }
-        if (!images) {
-            throw new BadRequestException('Files is required');
-        }
-
-        const stringImages = images.map((item) => item.filename);
-
-        return await this.productsService.createImages(stringImages);
     }
 
     @Post()
@@ -138,5 +116,54 @@ export class ProductsController {
     @UseGuards(RolesGuard)
     async deleteImagesProduct(@Param('idproduct') idproduct: string, @Body() data: ImagesDeleteDto) {
         return await this.productsService.deleteIamges(idproduct, data);
+    }
+
+    @Post('create-images')
+    @Roles([ERoles.CREATE])
+    @UseGuards(RolesGuard)
+    @UseInterceptors(
+        FilesInterceptor('images', 6, {
+            storage: process.env.CLOUND_MODE === 'clound' ? undefined : storegeConfig('products'),
+            fileFilter: filterStorage,
+        }),
+    )
+    async createImages(@UploadedFiles() images: Array<Express.Multer.File>, @Req() request: any) {
+        if (request.fileValidationError) {
+            throw new BadRequestException(request.fileValidationError);
+        }
+        if (!images) {
+            throw new BadRequestException('Files is required');
+        }
+
+        const stringImages = images.map((item) => item.filename);
+
+        return await this.productsService.createImages(stringImages);
+    }
+
+    @Post('create-images/:id')
+    @Roles([ERoles.CREATE])
+    @UseGuards(RolesGuard)
+    @UseInterceptors(
+        FilesInterceptor('images', 6, {
+            storage: process.env.CLOUND_MODE === 'clound' ? undefined : storegeConfig('products'),
+            fileFilter: filterStorage,
+        }),
+    )
+    async createImagesProduct(@UploadedFiles() images: Array<Express.Multer.File>, @Param('id') id: string, @Req() request: any) {
+        if (request.fileValidationError) {
+            throw new BadRequestException(request.fileValidationError);
+        }
+        if (!images) {
+            throw new BadRequestException('Files is required');
+        }
+
+        const stringImages = images.map((item) => item.filename);
+
+        return await this.productsService.createImagesProduct(id, stringImages);
+    }
+
+    @Get('chart/:id')
+    async getChartProduct(@Param('id') id: string) {
+        return this.productsService.getCharProduct(id);
     }
 }

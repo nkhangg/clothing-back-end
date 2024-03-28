@@ -1,5 +1,5 @@
 import { BaseEntity } from 'src/common/database/BaseEntity';
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Orders } from './orders';
 import { Admins } from './admins';
 
@@ -8,22 +8,23 @@ export class AcceptOrders extends BaseEntity {
     @PrimaryGeneratedColumn('increment')
     id: number;
 
-    @Column({ name: 'pat_at' })
+    @Column({ name: 'pat_at', default: null })
     payAt: Date;
 
-    @Column()
+    @Column({ default: false })
     cancel: boolean;
 
-    @Column()
+    @Column({ default: null })
     reason: string;
 
-    @Column()
+    @Column({ default: false })
     read: boolean;
 
-    @Column()
+    @Column({ default: 0 })
     print: number;
 
-    @ManyToOne(() => Orders, (orders) => orders.acceptOrders)
+    @OneToOne(() => Orders, (orders) => orders.acceptOrder)
+    @JoinColumn()
     order: Orders;
 
     @ManyToOne(() => Admins, (admin) => admin.acceptOrders)

@@ -33,7 +33,7 @@ export const getPathTofile = (request: Request, path_controller: string, name_fi
 export const deleteImageOnLocal = (name_file: string, folder = 'medias/collections') => {
     fs.unlink(`./${folder}/${name_file}`, (err) => {
         if (err) {
-            console.log('123');
+            console.log('err in deleteImageOnLocal', err);
         }
     });
 };

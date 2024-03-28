@@ -6,8 +6,24 @@ const responses = {
         notFound: {
             message: messages.errors.notFoud,
             status: true,
-            code: HttpStatus.BAD_REQUEST,
+            code: HttpStatus.NOT_FOUND,
             data: null,
+        },
+        invalid: (data: { message: string; code?: HttpStatus }) => {
+            return {
+                message: data.message,
+                status: true,
+                code: data.code || HttpStatus.BAD_REQUEST,
+                data: null,
+            };
+        },
+        already: (data: { message: string; code?: HttpStatus }) => {
+            return {
+                message: data.message,
+                status: true,
+                code: data.code || HttpStatus.CONFLICT,
+                data: null,
+            };
         },
         handle: {
             message: messages.errors.handle,
@@ -48,6 +64,14 @@ const responses = {
                 message: message,
                 status: false,
                 code: HttpStatus.OK,
+                data: data,
+            };
+        },
+        ajust<T>(data: T, message = 'Khôi phục thành công') {
+            return {
+                message: message,
+                status: false,
+                code: HttpStatus.GONE,
                 data: data,
             };
         },

@@ -149,8 +149,7 @@ export class AuthsService {
 
     async refreshToken(refreshToken: string, options = { admin: false }) {
         try {
-            const check = await this.jwtService.verify(refreshToken);
-            console.log(check);
+            await this.jwtService.verify(refreshToken);
         } catch (error) {
             throw new HttpException(
                 {

@@ -1,9 +1,10 @@
 import { BaseEntity } from 'src/common/database/BaseEntity';
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Customers } from './customers';
 import { AcceptOrders } from './accept-orders';
 import { OrderDetails } from './order-details';
 import { Reviews } from './reviews';
+import { Expose, Transform } from 'class-transformer';
 
 @Entity()
 export class Orders extends BaseEntity {
@@ -29,15 +30,36 @@ export class Orders extends BaseEntity {
     ward: string;
 
     @Column()
+    address: string;
+
+    @Column()
     description: string | null;
+
+    @Transform((params) => {
+        const order = params.obj as Orders;
+
+        if (!order.acceptOrder) {
+            return 'pending';
+        }
+
+        if (order.acceptOrder.cancel) {
+            return 'refunded';
+        }
+
+        return 'delivered';
+    })
+    @Expose({ toClassOnly: true, toPlainOnly: true })
+    state: string;
 
     @ManyToOne(() => Customers, (customers) => customers.orders, { cascade: true })
     customer: Customers;
 
-    @OneToMany(() => AcceptOrders, (acceptOrders) => acceptOrders.admin, { cascade: true })
-    acceptOrders: AcceptOrders[];
+    @OneToOne(() => AcceptOrders, (acceptOrders) => acceptOrders.order, { cascade: true })
+    @Expose({ name: 'detail' })
+    acceptOrder: AcceptOrders;
 
     @OneToMany(() => OrderDetails, (orderDetails) => orderDetails.order, { cascade: true })
+    @Expose({ name: 'data' })
     orderDetail: OrderDetails[];
 
     @OneToMany(() => Reviews, (reviews) => reviews.order, { cascade: true })

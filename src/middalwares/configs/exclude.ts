@@ -15,4 +15,8 @@ export const exludeRoutes = [
         path: routes('products/:id'),
         method: RequestMethod.GET,
     },
+    {
+        path: routes('categories'),
+        method: RequestMethod.GET,
+    },
 ] as (string | RouteInfo)[];

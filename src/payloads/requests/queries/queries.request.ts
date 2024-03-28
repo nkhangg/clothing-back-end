@@ -1,8 +1,9 @@
 import { IPaginationOptions } from 'nestjs-typeorm-paginate';
 
-export interface QueriesRequest {
+export interface QueriesRequest<S> {
     options?: IPaginationOptions;
     search?: string;
-    max?: number;
-    min?: number;
+    deleted?: boolean;
+    max?: S;
+    min?: S;
 }

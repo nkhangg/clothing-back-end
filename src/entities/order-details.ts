@@ -12,6 +12,9 @@ export class OrderDetails extends BaseEntity {
     price: number;
 
     @Column()
+    discount: number;
+
+    @Column()
     quantity: number;
 
     @ManyToOne(() => Orders, (orders) => orders.orderDetail)

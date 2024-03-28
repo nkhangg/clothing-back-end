@@ -16,9 +16,23 @@ import { AdminsController } from './modules/admin/controllers/admins.controller'
 import { ImagesModule } from './modules/images/images.module';
 import { exludeRoutes } from './middalwares/configs/exclude';
 import { ProductsController } from './modules/products/controllers/products.controller';
+import { OrdersModule } from './modules/orders/orders.module';
+import { OrdersController } from './modules/orders/controllers/orders.controller';
+import { CategoriesController } from './modules/categories/controllers/categories.controller';
 
 @Module({
-    imports: [ConfigModule.forRoot(), DatabaseModule, CustomerModule, CategoriesModule, AuthsModule, ProductsModule, AdminsModule, ConllectionsHomeModule, ImagesModule],
+    imports: [
+        ConfigModule.forRoot(),
+        DatabaseModule,
+        CustomerModule,
+        CategoriesModule,
+        AuthsModule,
+        ProductsModule,
+        AdminsModule,
+        ConllectionsHomeModule,
+        ImagesModule,
+        OrdersModule,
+    ],
     controllers: [AppController],
     providers: [AppService],
 })
@@ -27,6 +41,6 @@ export class AppModule implements NestModule {
         consumer
             .apply(TokenMiddleWare)
             .exclude(...exludeRoutes)
-            .forRoutes(CustomersController, ConllectionsHomeController, AdminsController, ProductsController);
+            .forRoutes(CustomersController, ConllectionsHomeController, AdminsController, ProductsController, OrdersController, CategoriesController);
     }
 }

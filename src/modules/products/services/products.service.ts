@@ -19,7 +19,8 @@ import responses from 'src/common/constants/responses';
 import { SizeDto } from 'src/dtos/products/size-dto';
 import { ImagesDeleteDto } from 'src/dtos/products/images-delete-dto';
 import Validate from 'src/ultils/validate';
-import { BaseEntity } from 'src/common/database/BaseEntity';
+import { SizeUpdateDto } from 'src/dtos/products/size-update-dto';
+import { Orders } from 'src/entities/orders';
 
 @Injectable()
 export class ProductsService {
@@ -29,6 +30,7 @@ export class ProductsService {
         @InjectRepository(Categories) private readonly categoriesRepo: Repository<Categories>,
         @InjectRepository(Roles) private readonly roleRepositories: Repository<Roles>,
         @InjectRepository(Sizes) private readonly sizesRepo: Repository<Sizes>,
+        @InjectRepository(Orders) private readonly ordersRepo: Repository<Orders>,
     ) {}
 
     async formatId(prefix: string, number: number) {
@@ -139,7 +141,7 @@ export class ProductsService {
             };
         }
 
-        const foundProduct = await this.productRepo.findOne({ where: { id } });
+        const foundProduct = await this.productRepo.findOne({ where: { id }, relations: { sizes: true } });
 
         if (!foundProduct) {
             return {
@@ -151,14 +153,66 @@ export class ProductsService {
         }
 
         try {
-            const product = await this.productRepo.update(id, {
-                id,
+            const acceptSizePro = foundProduct.sizes.filter((size) => size.deletedAt == null);
+            const deletedSizePro = foundProduct.sizes.filter((size) => size.deletedAt != null);
+
+            if (data.sizes.length >= acceptSizePro.length) {
+                const deletedFoud = deletedSizePro.filter((item) => data.sizes.find((i) => i.name === item.name));
+
+                if (deletedFoud.length) {
+                    deletedFoud.forEach((item) => {
+                        const matchData = data.sizes.find((i) => i.name === item.name);
+
+                        matchData.id = item.id;
+                        matchData['deletedAt'] = null;
+                        matchData['updatedAt'] = new Date();
+                    });
+                } else {
+                    const nameData = data.sizes.map((item) => item.name);
+
+                    const setCheck = new Set(nameData);
+
+                    if (nameData.length !== setCheck.size) {
+                        return {
+                            message: 'Dữ liệu trùng lập. Vui long kiểm tra lại',
+                            code: HttpStatus.BAD_REQUEST,
+                            data: null,
+                            status: true,
+                        };
+                    }
+                }
+            }
+
+            if (data.sizes.length < acceptSizePro.length) {
+                return {
+                    message: 'Không thể xóa kho bằng cách này',
+                    code: HttpStatus.BAD_REQUEST,
+                    data: null,
+                    status: true,
+                };
+            }
+
+            // Object.assign(foundProduct, {
+            //     id,
+            //     name: data.name,
+            //     description: data.description,
+            //     categories: { id: data.categoriesID },
+            //     showSize: data.showSize,
+            //     sizes: data.sizes,
+            // });
+
+            // const resutlData = await this.productRepo.save(foundProduct);
+
+            const resutlData = await this.productRepo.update(foundProduct.id, {
                 name: data.name,
                 description: data.description,
                 categories: { id: data.categoriesID },
                 showSize: data.showSize,
             });
-            if (!product) {
+
+            await this.processSizes(data.sizes, foundProduct);
+
+            if (!resutlData) {
                 return {
                     message: messages.errors.handle,
                     code: HttpStatus.BAD_REQUEST,
@@ -228,21 +282,48 @@ export class ProductsService {
         };
     }
 
-    async getProducts({ options, search, size, categories, min, max }: QueriesProduct, request: Request): Promise<Pagination<Products>> {
+    async processData(array: Products[]) {
+        for (let i = 0; i < array.length; i++) {
+            try {
+                // Thực hiện các hoạt động bất đồng bộ ở đây
+                const sizes = await this.sizesRepo.find({ where: { deletedAt: IsNull(), product: { id: array[i].id } } });
+
+                array[i].sizes = sizes;
+            } catch (error) {
+                console.error(`Error processing item ${i}: ${error.message}`);
+            }
+        }
+    }
+
+    async processSizes(sizes: SizeUpdateDto[], product: Products) {
+        // const newSize = data.sizes.filter((item) => !item.id);
+        // const oldSize = data.sizes.filter((item) => item.id);
+
+        for (let i = 0; i < sizes.length; i++) {
+            const size = sizes[i];
+            if (size.id) {
+                await this.sizesRepo.update(size.id, { price: size.price, updatedAt: new Date(), discount: size.discount, store: size.store, deletedAt: null });
+            } else {
+                await this.sizesRepo.save({ ...size, product });
+            }
+        }
+    }
+
+    async getProducts({ options, search, size, categories, min, max, sort, deleted }: QueriesProduct<number>, request: Request): Promise<Pagination<Products>> {
         const data = await usePagination(this.productRepo, options, {
-            order: { createdAt: 'DESC' },
+            order: { createdAt: sort === 'oldnest' ? 'ASC' : 'DESC', images: { id: 'ASC' } },
             where: [
                 {
-                    deletedAt: IsNull(),
+                    deletedAt: deleted ? Not(IsNull()) : IsNull(),
                     name: search && Like(`%${search}%`),
                     categories: { id: categories },
-                    sizes: { name: size && size, price: min && max && Between(min, max), deletedAt: IsNull() },
+                    sizes: { name: size && size, price: min && max && Between(!min && max ? 0 : min, max), deletedAt: IsNull() },
                 },
                 {
-                    deletedAt: IsNull(),
+                    deletedAt: deleted ? Not(IsNull()) : IsNull(),
                     description: search && Like(`%${search}%`),
                     categories: { id: categories },
-                    sizes: { name: size && size, price: min && max && Between(min, max), deletedAt: IsNull() },
+                    sizes: { name: size && size, price: min && max && Between(!min && max ? 0 : min, max), deletedAt: IsNull() },
                 },
             ],
         });
@@ -255,12 +336,17 @@ export class ProductsService {
             });
         });
 
+        if (!min && !max) {
+            await this.processData(data.items);
+        }
+
         return data;
     }
 
     async getProduct(id: string, request: Request): Promise<BaseResponse<Products>> {
         try {
             const foudData = await this.productRepo.findOne({
+                order: { images: { id: 'ASC' }, sizes: { price: 'ASC' } },
                 where: { id, deletedAt: IsNull(), sizes: { deletedAt: IsNull() } },
                 relations: { sizes: true, images: true, categories: true },
             });
@@ -402,6 +488,42 @@ export class ProductsService {
         return responses.success.create<typeof data>(data);
     }
 
+    async createImagesProduct(id: string, data: string[]) {
+        if (!data.length)
+            return {
+                message: 'Ảnh không hợp lệ',
+                code: HttpStatus.BAD_REQUEST,
+                data: null,
+                status: true,
+            };
+
+        try {
+            const foundData = await this.productRepo.findOne({ where: { id, deletedAt: IsNull() }, relations: { images: true } });
+
+            if (!foundData) {
+                return responses.errors.notFound;
+            }
+
+            if (foundData.images.length + data.length > 6 || foundData.images.length === 6 || data.length >= 6) {
+                data.forEach((img) => {
+                    deleteImageOnLocal(img, 'medias/products');
+                });
+                return responses.errors.invalid({ message: 'Một sản phẩm chỉ có tối đa 6 ảnh' });
+            }
+
+            const dataImages = data.map((item) => ({
+                name: item,
+                product: foundData,
+            }));
+
+            this.imagesRepo.save(dataImages);
+        } catch (error) {
+            return responses.errors.handle;
+        }
+
+        return responses.success.create<typeof data>(data);
+    }
+
     async deleteIamges(idproduct: string, { ids }: ImagesDeleteDto) {
         try {
             const product = await this.productRepo.findOne({ where: { id: idproduct, deletedAt: IsNull() }, relations: { images: true } });
@@ -435,6 +557,12 @@ export class ProductsService {
 
             const validIds = foudDatas.map((item) => item.id);
 
+            foudDatas.forEach((item) => {
+                if (Validate.isBlank(item.cloudId) && !Validate.isUrl(item.name)) {
+                    deleteImageOnLocal(item.name, 'medias/products');
+                }
+            });
+
             const reuslt = await this.imagesRepo.delete(validIds);
 
             if (!reuslt) return responses.errors.delete;
@@ -443,5 +571,62 @@ export class ProductsService {
         } catch (error) {
             return responses.errors.handle;
         }
+    }
+
+    async procressDataChart(id: string, state: boolean) {
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+
+        const result = await this.ordersRepo
+            .createQueryBuilder('o')
+            .select('MONTH(o.createdAt) AS month, SUM(od.quantity) AS count')
+            .innerJoin('o.orderDetail', 'od')
+            .innerJoin('od.size', 's')
+            .innerJoin('s.product', 'p')
+            .innerJoin('o.acceptOrder', 'ao')
+            .where('p.id = :id', { id })
+            .andWhere('ao.cancel = :state', { state })
+            .andWhere(`YEAR(o.createdAt) = :year`, { year: currentYear })
+            .groupBy('MONTH(o.createdAt)')
+            .getRawMany();
+
+        return result;
+    }
+
+    async getCharProduct(id: string) {
+        // sum quantiry with accept order key cancel is false
+        const sold = await this.procressDataChart(id, false);
+
+        // sum quantiry with accept order key cancel is true
+        const canceled = await this.procressDataChart(id, true);
+
+        if (!sold.length || !canceled.length) {
+            responses.success.get([
+                { name: 'Đã bán', data: [] },
+                { name: 'Đã hủy', data: [] },
+            ]);
+        }
+
+        // find value max in array
+        const findMaxMonth = sold.concat(canceled).map((item) => item.month);
+
+        const length = Math.max(...findMaxMonth);
+
+        // create to clone array
+        const resultSold = Array.from({ length }).fill(0);
+        const resultCanceled = Array.from({ length }).fill(0);
+
+        // set value with month
+        sold.forEach((item) => {
+            resultSold[item.month - 1] = Number(item.count);
+        });
+        canceled.forEach((item) => {
+            resultCanceled[item.month - 1] = Number(item.count);
+        });
+
+        return responses.success.get([
+            { name: 'Đã bán', data: resultSold },
+            { name: 'Đã hủy', data: resultCanceled },
+        ]);
     }
 }

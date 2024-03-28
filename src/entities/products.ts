@@ -23,7 +23,7 @@ export class Products extends BaseEntity {
     @Expose({ name: 'category' })
     categories: Categories;
 
-    @OneToMany(() => Sizes, (sizes) => sizes.product, { cascade: true, eager: true })
+    @OneToMany(() => Sizes, (sizes) => sizes.product, { cascade: true, eager: true, onUpdate: 'CASCADE' })
     sizes: Sizes[];
 
     @OneToMany(() => Images, (images) => images.product, { cascade: true, eager: true })
