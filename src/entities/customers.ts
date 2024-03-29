@@ -23,16 +23,16 @@ export class Customers extends BaseEntity {
     email: string | null;
 
     @Column({ default: null })
-    @Exclude()
     province: string | null;
 
     @Column({ default: null })
-    @Exclude()
     district: string | null;
 
     @Column({ default: null })
-    @Exclude()
     ward: string | null;
+
+    @Column({ default: null })
+    address: string | null;
 
     @Column({ default: 'local' })
     @Exclude()

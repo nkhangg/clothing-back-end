@@ -5,9 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Roles } from 'src/entities/roles';
 import { Admins } from 'src/entities/admins';
 import { Categories } from 'src/entities/categories';
+import { Customers } from 'src/entities/customers';
+import { Authorizations } from 'src/entities/authorizations';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Admins, Roles, Categories])],
+    imports: [TypeOrmModule.forFeature([Admins, Roles, Categories, Customers, Authorizations])],
     providers: [AdminsService],
     controllers: [AdminsController],
     exports: [AdminsService],

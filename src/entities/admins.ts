@@ -22,6 +22,7 @@ export class Admins extends BaseEntity {
     fullname: string | null;
 
     @Column({ name: 'refresh_token' })
+    @Exclude()
     refreshToken: string | null;
 
     @OneToMany(() => Authorizations, (authorization) => authorization.admin, { cascade: true })

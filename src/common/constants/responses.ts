@@ -83,6 +83,7 @@ const responses = {
                 data: data,
             };
         },
+
         create<T>(data: T, message = 'Create successfuly') {
             return {
                 message: message,

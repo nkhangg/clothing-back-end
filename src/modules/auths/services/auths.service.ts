@@ -8,7 +8,7 @@ import { LoginDto } from 'src/dtos/auths/login-dto';
 import { CustomersService } from 'src/modules/customers/services/customers.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Admins } from 'src/entities/admins';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 @Injectable()
 export class AuthsService {
     // Contructor
@@ -95,7 +95,9 @@ export class AuthsService {
     async login({ username, password }: LoginDto, options = { admin: false }): Promise<BaseResponse<ISiginResponse> & { errors?: Partial<LoginDto> }> {
         // Check if option.admin is true. If true then query and check on Admins table else query on Custumer table
         const type = Boolean(options.admin);
-        const foundCustomer = type ? await this.adminRepo.findOne({ where: { username } }) : await this.customersService.customersRepository.findOne({ where: { username } });
+        const foundCustomer = type
+            ? await this.adminRepo.findOne({ where: { username, deletedAt: IsNull() } })
+            : await this.customersService.customersRepository.findOne({ where: { username, deletedAt: IsNull() } });
 
         if (!foundCustomer) {
             return {
