@@ -15,6 +15,8 @@ import { ERoles } from 'src/common/enums/e-roles';
 import { Authorizations } from 'src/entities/authorizations';
 import { AuthorDto } from 'src/dtos/admins/author-dto';
 import { ChangePasswordDto } from 'src/dtos/admins/change-passoword-dto';
+import { Products } from 'src/entities/products';
+import { dummyProductData } from 'src/data/dummy-product-data';
 
 @Injectable()
 export class AdminsService {
@@ -24,24 +26,10 @@ export class AdminsService {
         @InjectRepository(Roles) readonly rolesRepo: Repository<Roles>,
         @InjectRepository(Authorizations) readonly authorizationsRepo: Repository<Authorizations>,
         @InjectRepository(Categories) readonly categotiesRepo: Repository<Categories>,
+        @InjectRepository(Products) readonly productsRepo: Repository<Products>,
     ) {}
 
     async createAdmins() {
-        const data = [
-            {
-                username: 'thomas',
-                password: bcrypt.hashSync('123123', Number(process.env.SALTORROUNDS)),
-                fullname: 'Thomas Joson',
-                authorizations: [{ role: { id: 4 } }],
-            },
-            {
-                username: 'admin',
-                password: bcrypt.hashSync('123123', Number(process.env.SALTORROUNDS)),
-                fullname: 'admin',
-                authorizations: [{ role: { id: 4 } }, { role: { id: 3 } }, { role: { id: 2 } }, { role: { id: 1 } }],
-            },
-        ];
-
         await this.rolesRepo.save([
             {
                 id: 1,
@@ -65,6 +53,21 @@ export class AdminsService {
             },
         ]);
 
+        const data = [
+            {
+                username: 'thomas',
+                password: bcrypt.hashSync('123123', Number(process.env.SALTORROUNDS)),
+                fullname: 'Thomas Joson',
+                authorizations: [{ role: { id: 4 } }],
+            },
+            {
+                username: 'admin',
+                password: bcrypt.hashSync('123123', Number(process.env.SALTORROUNDS)),
+                fullname: 'admin',
+                authorizations: [{ role: { id: 5 } }, { role: { id: 4 } }, { role: { id: 3 } }, { role: { id: 2 } }, { role: { id: 1 } }],
+            },
+        ];
+
         await this.categotiesRepo.save([
             { id: 1, name: 'Áo' },
             { id: 2, name: 'Quần' },
@@ -75,6 +78,8 @@ export class AdminsService {
             { id: 7, name: 'Túi xách' },
             { id: 8, name: 'Trang sức' },
         ]);
+
+        await this.productsRepo.save(dummyProductData);
 
         return await this.adminRepo.save(data);
     }

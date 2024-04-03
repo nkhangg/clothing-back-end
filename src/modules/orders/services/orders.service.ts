@@ -163,7 +163,7 @@ export class OrdersService {
     async acceptOrder(id: number, user: ICustomerSecssion) {
         try {
             const admin = await this.adminRepo.findOne({ where: { id: user.id } });
-            const order = await this.orderRepo.findOne({ where: { id } });
+            const order = await this.orderRepo.findOne({ where: { id, deletedAt: IsNull() }, relations: { orderDetail: { size: { product: true } } } });
 
             if (!admin || !order) {
                 return responses.errors.notFound;
@@ -173,6 +173,11 @@ export class OrdersService {
 
             if (foudData) {
                 return responses.errors.already({ message: 'Bạn đã thao tác với đơn này rồi' });
+            }
+
+            if (!order.orderDetail.some((item) => item.size.product.deletedAt == null)) {
+                console.log('san pham khong ton tai');
+                return responses.errors.invalid({ message: 'Sản phẩm không tồn tại' });
             }
 
             const result = await this.acceptRepo.save({
@@ -253,6 +258,39 @@ export class OrdersService {
             await this.acceptRepo.update(response.acceptOrder.id, { payAt: new Date() });
 
             return responses.success.ajust(response, 'Xác nhận thành công');
+        } catch (error) {
+            return responses.errors.handle;
+        }
+    }
+
+    // customers
+    async getOrdersCutomers({ options }: QueriesOrders<Date>, customer: ICustomerSecssion) {
+        try {
+            const data = await usePagination(this.orderRepo, options, {
+                order: { createdAt: 'DESC' },
+                where: { customer: { id: customer.id } },
+                relations: { acceptOrder: true, orderDetail: { size: { product: true } } },
+            });
+
+            return data;
+        } catch (error) {
+            return responses.errors.handle;
+        }
+    }
+
+    // customers
+    async getOrderCutomers(uuid: string, customer: ICustomerSecssion) {
+        try {
+            const response = await this.orderRepo.findOne({
+                where: { customer: { id: customer.id }, uuid },
+                relations: { acceptOrder: true, orderDetail: { size: { product: true } } },
+            });
+
+            if (!response) {
+                return responses.errors.notFound;
+            }
+
+            return responses.success.get(response);
         } catch (error) {
             return responses.errors.handle;
         }

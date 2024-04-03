@@ -31,10 +31,10 @@ import { ChangePasswordDto } from 'src/dtos/admins/change-passoword-dto';
 export class AdminsController {
     constructor(private readonly adminService: AdminsService) {}
 
-    // @Post()
-    // async createAdmins() {
-    //     return this.adminService.createAdmins();
-    // }
+    @Post('init')
+    async createAdmins() {
+        return this.adminService.createAdmins();
+    }
 
     @Get('current')
     async admin(@Customer() user: ICustomerSecssion) {

@@ -11,7 +11,7 @@ import usePagination from 'src/hooks/usePagination';
 import { QueriesProduct } from 'src/payloads/requests/queries/queries-product.request';
 import { ProductDto } from 'src/dtos/products/product-dto';
 import { BaseResponse } from 'src/common/apis/api-base';
-import { deleteImageOnLocal, getPathTofile } from 'src/ultils/funtions';
+import { deleteImageOnLocal, getPathTofile, sortSize } from 'src/ultils/funtions';
 import { ProductUpdateDto } from 'src/dtos/products/product-update-dto';
 import { Sizes } from 'src/entities/sizes';
 import messages from 'src/common/constants/messages';
@@ -311,7 +311,8 @@ export class ProductsService {
 
     async getProducts({ options, search, size, categories, min, max, sort, deleted }: QueriesProduct<number>, request: Request): Promise<Pagination<Products>> {
         const data = await usePagination(this.productRepo, options, {
-            order: { createdAt: sort === 'oldnest' ? 'ASC' : 'DESC', images: { id: 'ASC' } },
+            order: { createdAt: sort === 'oldnest' ? 'ASC' : 'DESC' },
+            // relations: { images: true },
             where: [
                 {
                     deletedAt: deleted ? Not(IsNull()) : IsNull(),
@@ -334,7 +335,13 @@ export class ProductsService {
                     image.name = getPathTofile(request, 'images/image-products', image.name);
                 }
             });
+
+            item.images = item.images.sort();
         });
+
+        // Mảng cần sắp xếp
+
+        // Sắp xếp mảng sử dụng hàm sort() với hàm so sánh tùy chỉnh
 
         if (!min && !max) {
             await this.processData(data.items);
@@ -367,6 +374,9 @@ export class ProductsService {
                     item.name = getPathTofile(request, 'images/image-products', item.name);
                 }
             });
+
+            // sort size s m l xl 2xl
+            foudData.sizes = sortSize(foudData.sizes);
 
             return {
                 message: 'Get successfuly',

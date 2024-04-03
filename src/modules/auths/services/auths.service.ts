@@ -9,6 +9,9 @@ import { CustomersService } from 'src/modules/customers/services/customers.servi
 import { InjectRepository } from '@nestjs/typeorm';
 import { Admins } from 'src/entities/admins';
 import { IsNull, Repository } from 'typeorm';
+import responses from 'src/common/constants/responses';
+import { LoginSocialDto } from 'src/dtos/auths/login-social';
+import { RegisterSocialDto } from 'src/dtos/auths/register-social';
 @Injectable()
 export class AuthsService {
     // Contructor
@@ -26,7 +29,7 @@ export class AuthsService {
                 type: options.type,
             },
             {
-                expiresIn: options.type === 'admin' ? '1h' : '1d',
+                expiresIn: options.type === 'admin' ? '1h' : '2h',
             },
         );
     }
@@ -97,7 +100,7 @@ export class AuthsService {
         const type = Boolean(options.admin);
         const foundCustomer = type
             ? await this.adminRepo.findOne({ where: { username, deletedAt: IsNull() } })
-            : await this.customersService.customersRepository.findOne({ where: { username, deletedAt: IsNull() } });
+            : await this.customersService.customersRepository.findOne({ where: { username, deletedAt: IsNull(), provider: 'local' } });
 
         if (!foundCustomer) {
             return {
@@ -137,6 +140,7 @@ export class AuthsService {
             this.adminRepo.save({ ...foundCustomer, refreshToken });
         } else {
             // handle customer something here
+            this.customersService.customersRepository.update(foundCustomer.id, { refreshToken });
         }
         return {
             message: 'Login Successfuly',
@@ -147,6 +151,99 @@ export class AuthsService {
                 refreshToken: refreshToken,
             },
         };
+    }
+
+    async loginWithGoogle(id: string, { email }: LoginSocialDto) {
+        try {
+            const response = await this.customersService.customersRepository.findOne({ where: { id, deletedAt: IsNull(), email, provider: 'google' } });
+
+            // if response is not null then login
+            if (response) {
+                const refreshToken = await this.generateRefreshToken({ username: response.username, id: id }, { type: 'customer' });
+
+                return {
+                    message: 'Login Successfuly',
+                    status: false,
+                    code: HttpStatus.CREATED,
+                    data: {
+                        token: await this.generateToken({ username: response.username, id: id }, { type: 'customer' }),
+                        refreshToken: refreshToken,
+                    },
+                };
+            }
+
+            return {
+                message: 'Login failure',
+                status: true,
+                code: HttpStatus.BAD_REQUEST,
+                data: null,
+                errors: {
+                    username: 'Tên đăng nhập không tồn tại',
+                    password: 'Mật khẩu không chính xác',
+                },
+            };
+        } catch (error) {
+            return responses.errors.handle;
+        }
+    }
+
+    async registerWithGoogle(id: string, { username, email }: RegisterSocialDto) {
+        try {
+            const response = await this.customersService.customersRepository.findOne({
+                where: [
+                    { id, deletedAt: IsNull() },
+                    { email, deletedAt: IsNull() },
+                    { username, deletedAt: IsNull() },
+                ],
+            });
+
+            if (response) {
+                return {
+                    message: 'Register failure',
+                    status: true,
+                    code: HttpStatus.BAD_REQUEST,
+                    data: null,
+                    errors: {
+                        username: 'Tên đăng nhập đã tồn tại',
+                    },
+                };
+            }
+
+            const result = await this.customersService.customersRepository.save({
+                id,
+                username,
+                email,
+                password: '',
+                provider: 'google',
+            });
+
+            if (!result) {
+                return {
+                    message: 'Register failure',
+                    status: true,
+                    code: HttpStatus.BAD_REQUEST,
+                    data: null,
+                    errors: {
+                        username: 'Tên đăng nhập đã tồn tại',
+                    },
+                };
+            }
+
+            const refreshToken = await this.generateRefreshToken({ username: result.username, id: result.id }, { type: 'customer' });
+
+            return {
+                message: 'Register Successfuly',
+                status: false,
+                code: HttpStatus.CREATED,
+                data: {
+                    token: await this.generateToken({ username: result.username, id: result.id }, { type: 'customer' }),
+                    refreshToken: refreshToken,
+                },
+            };
+        } catch (error) {
+            console.log(error);
+            return responses.errors.handle;
+        }
     }
 
     async refreshToken(refreshToken: string, options = { admin: false }) {
@@ -200,7 +297,7 @@ export class AuthsService {
         if (type) {
             this.adminRepo.save({ ...foundCustomer, refreshToken: newRefreshToken });
         } else {
-            // handle customer something here
+            this.customersService.customersRepository.save({ ...foundCustomer, refreshToken: newRefreshToken });
         }
 
         return {

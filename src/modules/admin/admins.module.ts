@@ -7,9 +7,10 @@ import { Admins } from 'src/entities/admins';
 import { Categories } from 'src/entities/categories';
 import { Customers } from 'src/entities/customers';
 import { Authorizations } from 'src/entities/authorizations';
+import { Products } from 'src/entities/products';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Admins, Roles, Categories, Customers, Authorizations])],
+    imports: [TypeOrmModule.forFeature([Admins, Roles, Categories, Customers, Authorizations, Products])],
     providers: [AdminsService],
     controllers: [AdminsController],
     exports: [AdminsService],

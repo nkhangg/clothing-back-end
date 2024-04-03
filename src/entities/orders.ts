@@ -5,11 +5,15 @@ import { AcceptOrders } from './accept-orders';
 import { OrderDetails } from './order-details';
 import { Reviews } from './reviews';
 import { Expose, Transform } from 'class-transformer';
+import { v4 as uuid } from 'uuid';
 
 @Entity()
 export class Orders extends BaseEntity {
     @PrimaryGeneratedColumn('increment')
     id: number;
+
+    @Column({ default: () => `'${uuid()}'` })
+    uuid: string;
 
     @Column()
     fullname: string;

@@ -19,6 +19,9 @@ import { ProductsController } from './modules/products/controllers/products.cont
 import { OrdersModule } from './modules/orders/orders.module';
 import { OrdersController } from './modules/orders/controllers/orders.controller';
 import { CategoriesController } from './modules/categories/controllers/categories.controller';
+import { DashboardController } from './modules/dashboard/controllers/dashboard.controller';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { OrdersCustomerController } from './modules/orders/controllers/orders-customer.controller';
 
 @Module({
     imports: [
@@ -32,6 +35,7 @@ import { CategoriesController } from './modules/categories/controllers/categorie
         ConllectionsHomeModule,
         ImagesModule,
         OrdersModule,
+        DashboardModule,
     ],
     controllers: [AppController],
     providers: [AppService],
@@ -41,6 +45,15 @@ export class AppModule implements NestModule {
         consumer
             .apply(TokenMiddleWare)
             .exclude(...exludeRoutes)
-            .forRoutes(CustomersController, ConllectionsHomeController, AdminsController, ProductsController, OrdersController, CategoriesController);
+            .forRoutes(
+                CustomersController,
+                ConllectionsHomeController,
+                AdminsController,
+                ProductsController,
+                OrdersController,
+                CategoriesController,
+                DashboardController,
+                OrdersCustomerController,
+            );
     }
 }

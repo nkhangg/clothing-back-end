@@ -9,10 +9,11 @@ import { Customers } from 'src/entities/customers';
 import { Admins } from 'src/entities/admins';
 import { Sizes } from 'src/entities/sizes';
 import { AcceptOrders } from 'src/entities/accept-orders';
+import { OrdersCustomerController } from './controllers/orders-customer.controller';
 
 @Module({
     imports: [TypeOrmModule.forFeature([Orders, OrderDetails, Products, Customers, Admins, Sizes, AcceptOrders])],
-    controllers: [OrdersController],
+    controllers: [OrdersController, OrdersCustomerController],
     providers: [OrdersService],
 })
 export class OrdersModule {}

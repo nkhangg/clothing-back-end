@@ -19,4 +19,8 @@ export const exludeRoutes = [
         path: routes('categories'),
         method: RequestMethod.GET,
     },
+    {
+        path: routes('admins/init'),
+        method: RequestMethod.POST,
+    },
 ] as (string | RouteInfo)[];

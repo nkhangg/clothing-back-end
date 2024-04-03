@@ -34,6 +34,12 @@ export class Customers extends BaseEntity {
     @Column({ default: null })
     address: string | null;
 
+    @Column({ default: null })
+    fullname: string | null;
+
+    @Column({ default: null, name: 'refresh_token' })
+    refreshToken: string | null;
+
     @Column({ default: 'local' })
     @Exclude()
     provider: 'local' | 'google';
